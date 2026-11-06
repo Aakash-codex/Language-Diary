@@ -1,36 +1,94 @@
-# Language Learning Diary
+# 📖 Language Diary
 
-A static HTML/CSS/JavaScript Japanese diary designed for GitHub Pages.
+**Learn Japanese naturally, one note at a time!**
 
-## Features
+Language Diary is a simple Japanese learning web app where you can write and save daily notes, learn new vocabulary, view furigana, and check Japanese word meanings using an online dictionary.
 
-- Diary entries saved in this browser using `localStorage` (no diary backend).
-- Automatic Japanese word segmentation and furigana using Kuromoji.js.
-- Click a furigana word to open a small vocabulary drawer.
-- Open the full Japanese-English entry on Jotoba from the drawer.
-- Light/dark theme, review/edit modes, note list, and basic rich-text formatting.
+🌐 **Live App:** https://aakash-codex.github.io/Language-Diary/
 
-## Live
-https://aakash-codex.github.io/Language-Diary/
+---
 
-## Use Language Diary on Your Mobile Phone
+## 📸 Screenshots
 
-You can use Language Diary like a normal mobile app!
+### Home Screen
+![Language Diary Home](images/home.jpeg)
 
-1. Open the Language Diary link in your phone's browser.
-https://aakash-codex.github.io/Language-Diary/
-2. Tap the **Share** button.
-  Language-Diary/image/editor.jpeg
-3. Select **Add to Home Screen**.
-4. Tap **Add**.
+### Note Editor
+![Note Editor](images/editor.jpeg)
 
-That's it! The Language Diary icon will appear on your home screen, and you can open it just like a regular app.
+### Furigana
+See hiragana readings above Japanese kanji to make reading easier.
 
+![Furigana Feature](images/furigana.jpeg)
 
-Furigana: See hiragana readings above Japanese kanji.
+### Vocabulary
+Click a Japanese word to see its reading and English meaning.
 
-Vocabulary: Click a Japanese word to see its reading, English meaning,
+![Vocabulary Feature](images/vocabulary.jpeg)
 
+---
+
+## ✨ Features
+
+- 📝 **Daily Notes:** Create, edit, and save Japanese diary entries.
+- 📖 **Furigana:** Display hiragana readings above kanji.
+- 🔍 **Online Dictionary:** Look up Japanese vocabulary and meanings.
+- 💡 **Vocabulary Learning:** Check word readings, English meanings, and parts of speech.
+- 🎨 **Text Formatting:** Format your notes while writing.
+- 💾 **Saved Notes:** Keep your diary entries for later.
+- 📱 **Responsive Design:** Use the app on mobile, tablet, and desktop.
+- 🌙 **Theme:** Switch between light and dark modes.
+
+---
+
+## 📱 Use Language Diary on Your Mobile Phone
+
+You can add Language Diary to your phone's home screen and open it like an app.
+
+1. Open the [Language Diary website](https://aakash-codex.github.io/Language-Diary/).
+2. Open your browser's menu or Share option.
+3. Select **Add to Home Screen** or **Install App**.
+4. Tap **Add** or **Install**.
+
+That's it! You can now open Language Diary from your home screen.
+
+---
+
+## 🚀 How to Use
+
+1. Open Language Diary.
+2. Click **New Note** to create a diary entry.
+3. Write your Japanese sentences.
+4. Use furigana to help read kanji.
+5. Click Japanese words to check their meanings.
+6. Save your notes and continue learning every day.
+
+---
+
+## 🛠️ Technologies
+
+- HTML
+- CSS
+- JavaScript
+- Online Japanese dictionary integration
+
+---
+
+## 🎯 Purpose
+
+The goal of Language Diary is to make Japanese learning easier through daily writing, vocabulary practice, and reading.
+
+**Write every day. Learn new words. Improve your Japanese!**
+
+---
+
+## 👨‍💻 Developer
+
+**AAKASH**
+
+GitHub: [Aakash-codex](https://github.com/Aakash-codex)
+
+Project: [Language Diary](https://aakash-codex.github.io/Language-Diary/)
 ## Online services and limitations
 
 - Kuromoji's browser build and its compressed dictionary files are loaded from jsDelivr (`kuromoji@0.1.2`). This requires an internet connection.
