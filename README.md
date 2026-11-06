@@ -13,19 +13,6 @@ A static HTML/CSS/JavaScript Japanese diary designed for GitHub Pages.
 ## Live
 https://aakash-codex.github.io/Language-Diary/
 
-## Run locally
-
-Because the app loads tokenizer dictionary files over HTTPS, run it from a local web server rather than opening `index.html` with `file://`.
-
-For example, in Terminal:
-
-```bash
-cd language-learning-diary-online
-python3 -m http.server 8000
-```
-
-Then open <http://localhost:8000>.
-
 ## Online services and limitations
 
 - Kuromoji's browser build and its compressed dictionary files are loaded from jsDelivr (`kuromoji@0.1.2`). This requires an internet connection.
