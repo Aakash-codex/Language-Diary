@@ -18,9 +18,12 @@ https://aakash-codex.github.io/Language-Diary/
 You can use Language Diary like a normal mobile app!
 
 1. Open the Language Diary link in your phone's browser.
+https://aakash-codex.github.io/Language-Diary/
 2. Tap the **Share** button.
+  Language-Diary/image/editor.jpeg
 3. Select **Add to Home Screen**.
 4. Tap **Add**.
+
 That's it! The Language Diary icon will appear on your home screen, and you can open it just like a regular app.
 
 
