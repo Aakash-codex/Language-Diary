@@ -10,6 +10,9 @@ A static HTML/CSS/JavaScript Japanese diary designed for GitHub Pages.
 - Open the full Japanese-English entry on Jotoba from the drawer.
 - Light/dark theme, review/edit modes, note list, and basic rich-text formatting.
 
+## Live
+https://aakash-codex.github.io/Language-Diary/
+
 ## Run locally
 
 Because the app loads tokenizer dictionary files over HTTPS, run it from a local web server rather than opening `index.html` with `file://`.
