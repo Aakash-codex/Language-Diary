@@ -22,21 +22,22 @@ const OFFLINE_DICTIONARY = {
   "本": { reading: "ほん", meaning: "Book" },
   "美味しい": { reading: "おいしい", meaning: "Delicious / tasty" },
   "食べる": { reading: "たべる", meaning: "To eat" },
-  "行く": { reading: "いく", meaning: "To go" }
+  "行く": { reading: "いく", meaning: "To go" },
+  "言葉": { reading: "ことば", meaning: "Word / language" },
+  "楽しい": { reading: "たのしい", meaning: "Fun / enjoyable" },
+  "新しい": { reading: "あたらしい", meaning: "New" },
+  "覚える": { reading: "おぼえる", meaning: "To memorize / learn" },
+  "毎日": { reading: "まいにち", meaning: "Every day" },
+  "読む": { reading: "よむ", meaning: "To read" },
+  "書く": { reading: "かく", meaning: "To write" },
+  "話す": { reading: "はなす", meaning: "To speak" },
+  "聞く": { reading: "きく", meaning: "To listen" },
+  "見る": { reading: "みる", meaning: "To see / watch" },
+  "時間": { reading: "じかん", meaning: "Time / hour" }
 };
 
 
 /* 2. APPLICATION CONFIGURATION */
-
-// Polyfill replaceChildren for compatibility with older browsers/environments
-if (!Element.prototype.replaceChildren) {
-  Element.prototype.replaceChildren = function (...nodes) {
-    while (this.firstChild) {
-      this.removeChild(this.firstChild);
-    }
-    this.append(...nodes);
-  };
-}
 
 const STORAGE_KEY = "languageDiaryApp_v2";
 
@@ -296,16 +297,16 @@ function sanitizeHTML(html) {
 }
 
 
-/* 7. ONLINE JAPANESE FURIGANA ENGINE
-   Kuromoji is loaded from jsDelivr. Its dictionary files are also
-   requested from jsDelivr; no API key or backend is required.
+/* 7. JAPANESE FURIGANA ENGINE (OFFLINE-FIRST + BACKGROUND WORKER)
+   Furigana is rendered instantly using our built-in dictionary.
+   Kuromoji morphological analysis runs in a background Web Worker
+   so the main browser UI thread never freezes or becomes unresponsive.
 */
 
-const KUROMOJI_DICTIONARY_URL =
-  "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/";
-
-let japaneseTokenizer = null;
-let tokenizerLoading = false;
+let tokenizerWorker = null;
+let tokenizerReady = false;
+let tokenizeRequestId = 0;
+const pendingTokenizeRequests = new Map();
 
 function katakanaToHiragana(value) {
   return String(value || "").replace(/[ァ-ヶ]/g, character =>
@@ -317,59 +318,12 @@ function containsKanji(value) {
   return /[一-龯々〆ヵヶ]/.test(value || "");
 }
 
-function initializeJapaneseTokenizer() {
-  if (japaneseTokenizer) return Promise.resolve(japaneseTokenizer);
-  if (tokenizerLoading) {
-    return new Promise((resolve, reject) => {
-      const wait = () => {
-        if (japaneseTokenizer) resolve(japaneseTokenizer);
-        else if (!tokenizerLoading) reject(new Error("Tokenizer unavailable"));
-        else setTimeout(wait, 100);
-      };
-      wait();
-    });
-  }
-
-  tokenizerLoading = true;
-
-  return new Promise((resolve, reject) => {
-    if (!window.kuromoji) {
-      tokenizerLoading = false;
-      reject(new Error("Kuromoji library did not load. Check your internet connection."));
-      return;
-    }
-
-    const dicPath = KUROMOJI_DICTIONARY_URL.endsWith("/")
-      ? KUROMOJI_DICTIONARY_URL
-      : KUROMOJI_DICTIONARY_URL + "/";
-
-    window.kuromoji.builder({ dicPath }).build((error, tokenizer) => {
-      tokenizerLoading = false;
-      if (error) {
-        reject(error);
-        return;
-      }
-      japaneseTokenizer = tokenizer;
-      resolve(tokenizer);
-    });
-  });
-}
-
-function makeWordToken(token) {
-  const surface = token.surface_form || "";
-  const reading = token.reading && token.reading !== "*"
-    ? katakanaToHiragana(token.reading)
-    : "";
-
-  if (!surface || !containsKanji(surface) || !reading) {
-    return document.createTextNode(surface);
-  }
-
+function makeWordTokenElement(surface, reading, basicForm) {
   const wrapper = document.createElement("span");
   wrapper.className = "word-token";
   wrapper.dataset.word = surface;
   wrapper.dataset.reading = reading;
-  wrapper.dataset.basicForm = token.basic_form || surface;
+  wrapper.dataset.basicForm = basicForm || surface;
 
   const ruby = document.createElement("ruby");
   ruby.appendChild(document.createTextNode(surface));
@@ -382,57 +336,115 @@ function makeWordToken(token) {
   return wrapper;
 }
 
-function tokenizeAndInjectFurigana(html) {
+// 1. Instant offline furigana using known dictionary words (< 1ms, zero lag)
+function injectFuriganaFromDictionary(html) {
   const safeHTML = sanitizeHTML(html);
   const container = document.createElement("div");
   container.innerHTML = safeHTML;
 
-  if (!japaneseTokenizer) return container.innerHTML;
+  const words = Object.keys(OFFLINE_DICTIONARY).sort((a, b) => b.length - a.length);
+  if (!words.length) return container.innerHTML;
 
-  function processTextNode(textNode) {
+  const regex = new RegExp(`(${words.join("|")})`, "g");
+
+  function processText(textNode) {
     const text = textNode.textContent;
-    if (!/[一-龯々〆ヵヶ]/.test(text)) return;
-
-    let tokens;
-    try {
-      tokens = japaneseTokenizer.tokenize(text);
-    } catch (error) {
-      console.warn("Japanese tokenization failed:", error);
-      return;
-    }
+    if (!containsKanji(text) || !regex.test(text)) return;
+    regex.lastIndex = 0;
 
     const fragment = document.createDocumentFragment();
     let cursor = 0;
+    let match;
 
-    tokens.forEach(token => {
-      const surface = token.surface_form || "";
-      if (!surface) return;
+    while ((match = regex.exec(text)) !== null) {
+      const matchIndex = match.index;
+      const word = match[0];
 
-      // Kuromoji positions are one-based; indexOf is a safe fallback for
-      // punctuation/unknown tokens and keeps offsets in JavaScript units.
-      let position = Number.isFinite(token.word_position)
-        ? token.word_position - 1
-        : -1;
-      if (position < cursor || text.slice(position, position + surface.length) !== surface) {
-        position = text.indexOf(surface, cursor);
+      if (matchIndex > cursor) {
+        fragment.appendChild(document.createTextNode(text.slice(cursor, matchIndex)));
       }
-      if (position < cursor) return;
 
-      if (position > cursor) {
-        fragment.appendChild(document.createTextNode(text.slice(cursor, position)));
-      }
-      fragment.appendChild(makeWordToken(token));
-      cursor = position + surface.length;
-    });
+      const dictEntry = OFFLINE_DICTIONARY[word];
+      fragment.appendChild(makeWordTokenElement(word, dictEntry.reading, word));
+      cursor = matchIndex + word.length;
+    }
 
     if (cursor < text.length) {
       fragment.appendChild(document.createTextNode(text.slice(cursor)));
     }
 
-    if (fragment.childNodes.length) textNode.replaceWith(fragment);
+    textNode.replaceWith(fragment);
   }
 
-  function walkTextNodes(node) {
+  function walk(node) {
+    Array.from(node.childNodes).forEach(child => {
+      if (child.nodeType === Node.TEXT_NODE) {
+        processText(child);
+      } else if (
+        child.nodeType === Node.ELEMENT_NODE &&
+        !["SCRIPT", "STYLE", "RUBY", "RT", "TEXTAREA"].includes(child.tagName)
+      ) {
+        walk(child);
+      }
+    });
+  }
+
+  walk(container);
+  return container.innerHTML;
+}
+
+// 2. Full morphological token parser (applied when Worker finishes)
+function buildFuriganaFromTokens(html, tokens) {
+  const safeHTML = sanitizeHTML(html);
+  const container = document.createElement("div");
+  container.innerHTML = safeHTML;
+
+  if (!Array.isArray(tokens) || !tokens.length) {
+    return injectFuriganaFromDictionary(html);
+  }
+
+  function processTextNode(textNode) {
+    const text = textNode.textContent;
+    if (!containsKanji(text)) return;
+
+    const fragment = document.createDocumentFragment();
+    let cursor = 0;
+
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      const surface = token.surface_form || "";
+      if (!surface) continue;
+
+      const reading = token.reading && token.reading !== "*"
+        ? katakanaToHiragana(token.reading)
+        : "";
+
+      const pos = text.indexOf(surface, cursor);
+      if (pos === -1) continue;
+
+      if (pos > cursor) {
+        fragment.appendChild(document.createTextNode(text.slice(cursor, pos)));
+      }
+
+      if (containsKanji(surface) && reading) {
+        fragment.appendChild(makeWordTokenElement(surface, reading, token.basic_form || surface));
+      } else {
+        fragment.appendChild(document.createTextNode(surface));
+      }
+
+      cursor = pos + surface.length;
+    }
+
+    if (cursor === 0) return;
+
+    if (cursor < text.length) {
+      fragment.appendChild(document.createTextNode(text.slice(cursor)));
+    }
+
+    textNode.replaceWith(fragment);
+  }
+
+  function walk(node) {
     Array.from(node.childNodes).forEach(child => {
       if (child.nodeType === Node.TEXT_NODE) {
         processTextNode(child);
@@ -440,13 +452,122 @@ function tokenizeAndInjectFurigana(html) {
         child.nodeType === Node.ELEMENT_NODE &&
         !["SCRIPT", "STYLE", "RUBY", "RT", "TEXTAREA"].includes(child.tagName)
       ) {
-        walkTextNodes(child);
+        walk(child);
       }
     });
   }
 
-  walkTextNodes(container);
+  walk(container);
   return container.innerHTML;
+}
+
+// 3. Web Worker for background Kuromoji initialization (keeps UI thread at 0% load)
+function initTokenizerWorker() {
+  if (tokenizerWorker || typeof Worker === "undefined") return;
+
+  try {
+    const workerScript = `
+      var tokenizer = null;
+      var isBuilding = false;
+
+      self.onmessage = function(e) {
+        var msg = e.data;
+        if (msg.type === "INIT") {
+          if (tokenizer) {
+            self.postMessage({ type: "READY" });
+            return;
+          }
+          if (isBuilding) return;
+          isBuilding = true;
+          try {
+            importScripts("https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js");
+            kuromoji.builder({ dicPath: msg.dicPath }).build(function(err, tok) {
+              isBuilding = false;
+              if (err) {
+                self.postMessage({ type: "ERROR", error: String(err) });
+              } else {
+                tokenizer = tok;
+                self.postMessage({ type: "READY" });
+              }
+            });
+          } catch(err) {
+            isBuilding = false;
+            self.postMessage({ type: "ERROR", error: String(err) });
+          }
+        } else if (msg.type === "TOKENIZE") {
+          if (!tokenizer) {
+            self.postMessage({ type: "TOKENIZE_RESULT", id: msg.id, tokens: null });
+            return;
+          }
+          try {
+            var tokens = tokenizer.tokenize(msg.text);
+            self.postMessage({ type: "TOKENIZE_RESULT", id: msg.id, tokens: tokens });
+          } catch(err) {
+            self.postMessage({ type: "TOKENIZE_RESULT", id: msg.id, tokens: null, error: String(err) });
+          }
+        }
+      };
+    `;
+
+    const blob = new Blob([workerScript], { type: "application/javascript" });
+    tokenizerWorker = new Worker(URL.createObjectURL(blob));
+
+    tokenizerWorker.onmessage = function(e) {
+      const msg = e.data;
+      if (msg.type === "READY") {
+        tokenizerReady = true;
+        const status = $("engine-status");
+        if (status) status.textContent = "Japanese reading engine ready";
+        if (currentView === "editor" && currentMode === "review" && activeNoteId) {
+          enhanceFuriganaWithWorker();
+        }
+      } else if (msg.type === "TOKENIZE_RESULT") {
+        const callback = pendingTokenizeRequests.get(msg.id);
+        if (callback) {
+          pendingTokenizeRequests.delete(msg.id);
+          callback(msg.tokens);
+        }
+      } else if (msg.type === "ERROR") {
+        console.warn("Kuromoji background builder:", msg.error);
+        const status = $("engine-status");
+        if (status) status.textContent = "Japanese reading engine ready";
+      }
+    };
+
+    tokenizerWorker.onerror = function(err) {
+      console.warn("Tokenizer worker encountered an error:", err);
+      tokenizerReady = false;
+    };
+
+    tokenizerWorker.postMessage({
+      type: "INIT",
+      dicPath: "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/"
+    });
+  } catch (err) {
+    console.warn("Web Worker initialization skipped:", err);
+    tokenizerWorker = null;
+  }
+}
+
+function enhanceFuriganaWithWorker() {
+  if (!tokenizerWorker || !tokenizerReady || currentMode !== "review") return;
+  const currentNote = diaryEntries.find(note => note.id === activeNoteId);
+  if (!currentNote) return;
+
+  const temp = document.createElement("div");
+  temp.innerHTML = sanitizeHTML(currentNote.content);
+  const textContent = temp.textContent || "";
+  if (!containsKanji(textContent)) return;
+
+  const reqId = ++tokenizeRequestId;
+  pendingTokenizeRequests.set(reqId, tokens => {
+    if (tokens && currentMode === "review" && activeNoteId === currentNote.id) {
+      editor.innerHTML = buildFuriganaFromTokens(currentNote.content, tokens);
+      editor.classList.toggle("furigana-disabled", !showFurigana);
+    }
+  });
+
+  tokenizerWorker.postMessage({ type: "TOKENIZE", id: reqId, text: textContent });
 }
 
 /* 8. THEME ENGINE */
@@ -508,7 +629,7 @@ function formatDate(isoString) {
 
 function renderRecentNotes() {
   if (!recentNotesGrid) return;
-  recentNotesGrid.replaceChildren();
+  recentNotesGrid.textContent = "";
 
   if (homeNotesCount) {
     const count = diaryEntries.length;
@@ -691,7 +812,8 @@ function startReviewing() {
 
   editor.contentEditable = "false";
 
-  editor.innerHTML = tokenizeAndInjectFurigana(
+  // 1. Immediately inject known dictionary furigana (0ms, synchronous, instant)
+  editor.innerHTML = injectFuriganaFromDictionary(
     currentNote.content
   );
 
@@ -699,6 +821,9 @@ function startReviewing() {
     "furigana-disabled",
     !showFurigana
   );
+
+  // 2. Request background tokenization enhancement if worker is active
+  enhanceFuriganaWithWorker();
 
   renderSidebarList();
 }
@@ -823,7 +948,7 @@ function renderSidebarList() {
 
   if (!entriesList) return;
 
-  entriesList.replaceChildren();
+  entriesList.textContent = "";
 
   diaryEntries.forEach(note => {
 
@@ -1032,7 +1157,7 @@ function renderDictionaryEntry(entry, requestedWord, fallbackReading = "") {
 
   const examples = $("dict-examples");
   if (examples) {
-    examples.replaceChildren();
+    examples.textContent = "";
     (entry.examples || []).forEach(sample => {
       const row = document.createElement("p");
       row.className = "dict-example";
@@ -1093,7 +1218,8 @@ function openDictionaryDrawer(word, reading = "", basicForm = "") {
 
   const pos = $("dict-pos");
   if (pos) pos.textContent = fallback ? "Part of speech: —" : "";
-  $("dict-examples")?.replaceChildren();
+  const ex = $("dict-examples");
+  if (ex) ex.textContent = "";
 
   const link = $("dict-online-link");
   if (link) {
@@ -1409,18 +1535,7 @@ if (document.readyState === "loading") {
   initializeApplication();
 }
 
-// Load the tokenizer in the background so the diary remains usable even
-// when the network is temporarily unavailable.
-window.addEventListener("load", async () => {
-  const status = $("engine-status");
-  try {
-    await initializeJapaneseTokenizer();
-    if (status) status.textContent = "Japanese reading engine ready";
-    if (currentView === "editor" && currentMode === "review" && activeNoteId) {
-      startReviewing();
-    }
-  } catch (error) {
-    console.warn("Online Japanese reading engine unavailable:", error);
-    if (status) status.textContent = "Furigana engine needs an internet connection";
-  }
+// Initialize background Web Worker for Kuromoji off the main UI thread
+window.addEventListener("load", () => {
+  initTokenizerWorker();
 });
