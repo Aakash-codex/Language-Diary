@@ -13,6 +13,21 @@ A static HTML/CSS/JavaScript Japanese diary designed for GitHub Pages.
 ## Live
 https://aakash-codex.github.io/Language-Diary/
 
+## Use Language Diary on Your Mobile Phone
+
+You can use Language Diary like a normal mobile app!
+
+1. Open the Language Diary link in your phone's browser.
+2. Tap the **Share** button.
+3. Select **Add to Home Screen**.
+4. Tap **Add**.
+That's it! The Language Diary icon will appear on your home screen, and you can open it just like a regular app.
+
+
+Furigana: See hiragana readings above Japanese kanji.
+
+Vocabulary: Click a Japanese word to see its reading, English meaning,
+
 ## Online services and limitations
 
 - Kuromoji's browser build and its compressed dictionary files are loaded from jsDelivr (`kuromoji@0.1.2`). This requires an internet connection.
