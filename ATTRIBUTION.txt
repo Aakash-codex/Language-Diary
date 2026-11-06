@@ -1,0 +1,22 @@
+Language Learning Diary — third-party resources
+
+1) Kuromoji.js
+   Project: https://github.com/takuyaa/kuromoji.js
+   Browser package: https://www.jsdelivr.com/package/npm/kuromoji
+   Version used: 0.1.2
+   License: Apache License 2.0
+   The app loads the browser build and dictionary files from jsDelivr at runtime.
+
+2) Jotoba Japanese dictionary
+   Website: https://jotoba.de/
+   API documentation: https://jotoba.de/docs.html
+   Dictionary sources and attribution: https://jotoba.de/about
+   The app links to Jotoba for full word definitions. Dictionary content is displayed
+   on Jotoba's own website rather than copied into this project.
+
+3) Local fallback vocabulary
+   The small fallback list in app.js is authored in this project for demonstration
+   and basic offline fallback only. It is not a complete Japanese dictionary.
+
+Note: An internet connection is required for automatic furigana and external dictionary
+lookups in this online-first version. Diary entries remain stored in browser localStorage.

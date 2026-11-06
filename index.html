@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7f7f5">
+  <meta name="description" content="A calm Japanese learning diary with automatic furigana and vocabulary lookup.">
+  <title>Language Learning Diary</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="app-shell">
+    <aside id="sidebar" class="sidebar hidden-sidebar" aria-label="Diary entries">
+      <div class="sidebar-header">
+        <span class="eyebrow">YOUR JOURNAL</span>
+        <button id="close-sidebar-btn" class="icon-btn" aria-label="Close sidebar">×</button>
+      </div>
+      <button id="create-note-btn" class="new-entry-btn">＋ New entry</button>
+      <ul id="entries-list" class="entries-list"></ul>
+      <p class="sidebar-footnote">Your entries are saved in this browser.</p>
+    </aside>
+    <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="menu-btn" class="icon-btn menu-btn" aria-label="Open your journal" title="Your Journal (☰)"
+            aria-expanded="false">
+            <span aria-hidden="true">☰</span>
+          </button>
+          <button id="brand-home-btn" class="brand-link" type="button" aria-label="Return to Home"
+            title="Return to Home">
+            <span class="brand-icon" aria-hidden="true">📔</span>
+            <span class="brand-text-group">
+              <span class="brand-name">Language Diary</span>
+              <span id="mode-text" class="mode-label">Home</span>
+            </span>
+          </button>
+        </div>
+        <div class="topbar-actions">
+          <button id="quick-new-note-btn" class="subtle-btn new-note-top-btn" type="button"
+            title="Create a new diary note" aria-label="Create a new diary note"><span aria-hidden="true">✎</span> New
+            note</button>
+          <button id="toggle-furigana-btn" class="subtle-btn active" title="Show or hide furigana">あ Furigana</button>
+          <button id="theme-toggle-btn" class="icon-btn" aria-label="Toggle theme" title="Toggle theme">◐</button>
+        </div>
+      </header>
+
+      <!-- HOME WELCOME VIEW -->
+      <section id="home-view" class="home-view" aria-label="Welcome screen">
+        <div class="home-hero">
+          <div class="home-eyebrow">JAPANESE STUDY JOURNAL</div>
+          <h1 class="home-title">Welcome to Language Diary</h1>
+          <p class="home-subtitle">Practice Japanese writing every day with automatic furigana readings and instant
+            Jotoba dictionary lookup.</p>
+          <div class="home-hero-actions">
+            <button id="home-new-note-btn" class="primary-btn home-new-btn" type="button">
+              <span aria-hidden="true">＋</span> New Note
+            </button>
+            <span id="home-notes-count" class="home-notes-count">Loading entries…</span>
+          </div>
+        </div>
+
+        <div class="home-tips-card">
+          <div class="home-tip-icon">💡</div>
+          <div class="home-tip-text">
+            <strong>Study Tip:</strong> Open any note in Review Mode and tap any kanji to view its reading, English
+            definitions, parts of speech, and Jotoba examples.
+          </div>
+        </div>
+
+        <div class="recent-notes-section">
+          <div class="recent-notes-header">
+            <h2 class="recent-notes-title">Recent Notes</h2>
+            <span class="recent-notes-subtitle">Select a note to read or edit</span>
+          </div>
+          <div id="recent-notes-grid" class="recent-notes-grid"></div>
+        </div>
+      </section>
+
+      <!-- NOTE EDITOR VIEW -->
+      <section id="editor-view" class="diary-page hidden" aria-label="Note editor">
+        <div class="note-editor-top">
+          <div class="page-meta">
+            <span class="eyebrow">JAPANESE STUDY JOURNAL</span>
+            <span id="engine-status" class="engine-status">Starting Japanese reading engine…</span>
+          </div>
+          <div class="mode-actions">
+            <button id="edit-btn" class="primary-btn editor-mode-btn" type="button" aria-label="Edit this note"><span
+                aria-hidden="true">✎</span> Edit</button>
+            <button id="save-btn" class="primary-btn editor-mode-btn" type="button" disabled
+              aria-label="Done editing and save this note"><span aria-hidden="true">✓</span> Done</button>
+          </div>
+        </div>
+
+        <input id="diary-title" class="diary-title" type="text" value="" placeholder="Give this entry a title" disabled>
+
+        <div id="formatting-bar" class="formatting-bar disabled-toolbar" aria-label="Text formatting">
+          <select id="text-size" aria-label="Text style" disabled>
+            <option value="p">Normal text</option>
+            <option value="h1">Heading 1</option>
+            <option value="h2">Heading 2</option>
+            <option value="h3">Heading 3</option>
+            <option value="h4">Heading 4</option>
+          </select>
+          <span class="toolbar-divider"></span>
+          <button class="fmt-btn" data-cmd="bold" title="Bold" disabled><b>B</b></button>
+          <button class="fmt-btn" data-cmd="italic" title="Italic" disabled><i>I</i></button>
+          <button class="fmt-btn" data-cmd="underline" title="Underline" disabled><u>U</u></button>
+          <label class="highlight-control" title="Highlight selected text">
+            <span aria-hidden="true">▰</span>
+            <select id="highlight-color" aria-label="Highlight color" disabled>
+              <option value="#fff19a">Yellow</option>
+              <option value="#bfe8c7">Green</option>
+              <option value="#bfe3ff">Blue</option>
+              <option value="#ffd0df">Pink</option>
+              <option value="#e4d2ff">Purple</option>
+              <option value="transparent">Remove</option>
+            </select>
+          </label>
+          <button class="fmt-btn" data-cmd="insertUnorderedList" title="Bulleted list" disabled>• List</button>
+          <button class="fmt-btn" data-cmd="formatBlock" data-val="blockquote" title="Quote" disabled>❝</button>
+          <span class="toolbar-divider"></span>
+          <button id="checklist-btn" class="fmt-btn checklist-btn" type="button"
+            title="Insert an unticked checklist item" disabled>☐ Checklist</button>
+          <button id="tick-btn" class="fmt-btn" type="button" title="Insert a tick mark" disabled>✓ Tick</button>
+        </div>
+
+        <article id="diary-editor" class="diary-editor" contenteditable="false" spellcheck="false">
+          <p>今日、私は日本語を勉強しました。</p>
+          <p>新しい言葉を覚えることは楽しいです。</p>
+        </article>
+
+        <div class="bottom-actions">
+          <p class="privacy-note">✦ Private by default · Stored on this device</p>
+        </div>
+      </section>
+      <footer class="app-footer">Made for steady progress, one sentence at a time.
+        <br>Aakash Deep
+      </footer>
+    </main>
+  </div>
+
+  <section id="dict-drawer" class="dict-drawer hidden" aria-live="polite" aria-label="Vocabulary details">
+    <div class="drawer-handle"></div>
+    <div class="drawer-topline">
+      <span class="eyebrow">VOCABULARY</span>
+      <button id="close-drawer" class="icon-btn" aria-label="Close dictionary">×</button>
+    </div>
+    <p id="dict-status" class="dict-status" role="status">Ready</p>
+    <h2 id="dict-word" class="dict-word"></h2>
+    <p id="dict-reading" class="dict-reading"></p>
+    <p id="dict-pos" class="dict-pos"></p>
+    <p id="dict-meaning" class="dict-meaning"></p>
+    <div id="dict-examples" class="dict-examples"></div>
+    <a id="dict-online-link" class="dictionary-link" href="https://jotoba.de/" target="_blank"
+      rel="noopener noreferrer">Open full definition on Jotoba ↗</a>
+    <p class="dictionary-credit">Dictionary link: Jotoba. Entries and meanings are provided by the linked dictionary.
+    </p>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
