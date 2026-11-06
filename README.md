@@ -14,7 +14,7 @@ Language Diary is a simple Japanese learning web app where you can write and sav
 ![Note Editor](image/editor.jpeg)
 
 ### Note Editor
-<img src="images/home.jpeg" alt="Language Diary Home" width="500">
+<img src="images/home.jpeg" alt="Language Diary Home" width="400">
 
 ### Furigana
 See hiragana readings above Japanese kanji to make reading easier.
