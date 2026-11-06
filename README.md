@@ -11,7 +11,7 @@ Language Diary is a simple Japanese learning web app where you can write and sav
 ## 📸 Screenshots
 
 ### Home Screen
-![Note Editor](image/editor.jpeg)
+<img src="image/editor.jpeg" alt="Language Diary Home" width="400">
 
 ### Note Editor
 <img src="image/home.jpeg" alt="Language Diary Home" width="400">
