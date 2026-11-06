@@ -1,4 +1,4 @@
-# Language Learning Diary — online-first version
+# Language Learning Diary
 
 A static HTML/CSS/JavaScript Japanese diary designed for GitHub Pages.
 
