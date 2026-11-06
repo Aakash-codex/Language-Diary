@@ -44,7 +44,7 @@ const STORAGE_KEY = "languageDiaryApp_v2";
 const DEFAULT_NOTE = {
   id: "default-note",
   title: "11月5日の日記",
-  content: "今日、私は日本語を勉強しました。天気はいいです。",
+  content: "今日、私は日本語を勉強しました。",
   updatedAt: new Date().toISOString()
 };
 
